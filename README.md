@@ -1,13 +1,19 @@
 # The Unofficial Guide — Project 1
 
+> **How to use this template:**
+> Complete each section *after* you've built and tested the corresponding part of your system.
+> Do not write placeholder text — if a section isn't done yet, leave it blank and come back.
+> Every section below is required for submission. One-liners will not receive full credit.
+
+---
+
 ## Domain
 
 <!-- What topic or category of knowledge does your system cover?
      Why is this knowledge valuable, and why is it hard to find through official channels?
      Example: "Student reviews of CS professors at [university] — useful because official
      course descriptions don't reflect teaching style, exam difficulty, or workload." -->
-     
-This system covers student-generated knowledge about the Computer Science department at Brooklyn College (CUNY). It includes professor reviews, course advice, program requirements, and informal student opinions that are difficult to find through official channels. Official sources like course catalogs and department websites describe what courses exist, but don't reflect teaching style, exam difficulty, workload, or which professors are worth taking. This system makes that informal knowledge searchable and answerable.
+     This system covers student-generated knowledge about the Computer Science department at Brooklyn College (CUNY). It includes professor reviews, course advice, program requirements, and informal student opinions that are difficult to find through official channels. Official sources like course catalogs and department websites describe what courses exist, but don't reflect teaching style, exam difficulty, workload, or which professors are worth taking. This system makes that informal knowledge searchable and answerable.
 
 ---
 
@@ -28,7 +34,7 @@ This system covers student-generated knowledge about the Computer Science depart
 | 7 |r/CUNY | Subreddit| https://www.reddit.com/r/CUNY/|
 | 8 | r/BrooklynCollege| Subreddit | https://www.reddit.com/r/BrooklynCollege/|
 | 9 | Brooklyn College CS Club Website| Club website | https://www.reddit.com/r/BrooklynCollege/|
-| 10 | Brooklyn College CS Discord| Discord export (past 3 years) | docs/bc_csclub_discord.html|
+| 10 | Brooklyn College CS Discord| Discord export | docs/bc_csclub_discord.html|
 
 
 ---
@@ -49,6 +55,38 @@ This system covers student-generated knowledge about the Computer Science depart
 **Why these choices fit your documents:** The corpus is dominated by short-form review and opinion content from RateMyProfessors, Reddit, and Discord, where individual posts are naturally self-contained units of meaning. A smaller chunk size of 200 tokens preserves these atomic opinions without merging unrelated reviews together. The longer structured documents like syllabi and PDFs are also well-served by this size since their key information tends to appear in discrete paragraphs. A 30-token overlap ensures that sentences split across chunk boundaries don't lose context without introducing excessive redundancy. Before chunking, documents were cleaned to remove URLs, email addresses, phone numbers, and PDF table of contents formatting using regex preprocessing.
 
 **Final chunk count:** 980 chunks across 10 documents
+
+---
+
+## Sample Chunks
+| # | ChunkID | Source | Text |
+|---|--------|------|-----------------|
+|1 | graduate.pdf_5 | graduate.pdf | "The Computation track is designed for students interested in computer science research, system development, or advanced applications. This program is focused on teaching the student advanced techniques and methodology, in addition to applying standard computer tools. The program is also recommended for students who wish to pursue doctoral studies in computer science." |
+| 2 | bc_csclub_discord.html_1 | bc_csclub_discord.html | "katychuang He's one of the few who are more hands on than most other professors so he gives feedback along the way. Also, when you get stuck on a problem, as long as you show you're making effort to find solutions, he'll give some hints/corrections on the path forward. The key is to show you're being proactive with the learning process" |
+| 3 | ratemyprofessor.txt_1 | ratemyprofessor.txt | "not a terrible professor, but there are better options available. If you have the chance to choose a different instructor I recommend doing so. However if he's your only option you'll manage just fine. At times he seems a bit unfit for teaching but if you read the textbook, practice on your own and attend class you'll be fine."|
+|4 | undergraduate.pdf_4 | undergraduate.pdf | "knowledge of a high-level computer language (preferably Java or C++), knowledge of assembly language and computer architecture, a course in discrete structures, a course in data structures, and a course in calculus."|
+|5| reddit_bc.txt_0 | reddit_bc.txt | "Even if the professors suck at BC, computer science is mostly self-taught anyway. You get taught a little bit from the professors and guided, but a lot of the coding and work is done on your own. You kinda teach yourself through YouTube, Stack Overflow, etc." |
+
+---
+
+## Retrieval Test Examples
+**Query 1:** "What programming languages are CS undergrad students required to learn?"
+1. undergraduate.pdf — "The Department of Computer and Information Science (CIS) offers a very rich undergraduate program in computer science..." (distance: 0.703)
+2. undergraduate.pdf — "knowledge of a high-level computer language (preferably Java or C++), knowledge of assembly language..." (distance: 0.761)
+3. reddit_bc.txt — "Even if the professors suck at BC, computer science is mostly self-taught anyway..." (distance: 0.798)
+**Why these chunks are relevant:** The top two chunks are from the undergraduate PDF and directly mention Java and C++ as required languages. The Reddit chunk is partially relevant — it discusses CS education at BC generally but doesn't name specific languages. Retrieval correctly prioritized the official document over the informal source.
+
+**Query 2:** "What negative feedback do students give about Professor Ziegler?"
+1. bc_csclub_discord.html — "Ziegler is a miserable man bro. The dude is always condescending and in a bad mood..." (distance: 0.953)
+2. bc_csclub_discord.html — "as someone who's taken Ziegler for 3115, he's so much worse...Oral assignments with vague instructions, lectures that are only vaguely related to the course's description..." (distance: 1.001)
+3. bc_csclub_discord.html — "Class so stressful it made me get a psych eval...for long assignments like Ziegler's, they require several hours of tutoring if you're starting from zero..." (distance: 1.034)
+**Why these chunks are relevant:**  All top results came from the Discord export and directly mention Professor Ziegler by name with specific negative feedback. This is the strongest retrieval result in the evaluation.
+
+**Query 3:** If I take the expedited masters, does taking the graduate level computer theory course fulfill both undergrad and grad requirements at the same time?"
+1. bc_csclub_discord.html — "they're capstone courses. Can vary on an individual case basis, but is rare..." (distance: 0.953)
+2. graduate.pdf — "advanced area test. Students whose first language is not English are required to take the TOEFL..." (distance: 0.976)
+3. graduate.pdf — "undergraduate or graduate courses in health and nutrition sciences..." (distance: 0.987)
+**Why these chunks struggled:** Only the first chunk is partially relevant. The query uses specific phrasing ("expedited masters", "fulfill both requirements") that doesn't semantically match the language in the documents ("capstone courses", "24 credits of advanced courses"). This is the documented failure case.
 
 ---
 
@@ -158,3 +196,45 @@ This system covers student-generated knowledge about the Computer Science depart
 - *What I gave the AI:* The Retrieval Approach section of planning.md, the ChromaDB setup, and the Groq model choice
 - *What it produced:* The embed.py and query.py files including the grounding prompt, retrieval function, and Gradio interface skeleton
 - *What I changed or overrode:* The initial implementation re-embedded all chunks every time the app was launched. This was changed to check collection.count() first and skip embedding if the database already existed, reducing startup time from ~30 seconds to instant
+
+---
+
+## Query Interface
+The interface is built with Gradio and runs locally at http://localhost:7860. It has two input/output fields:
+
+- Input: A text box labeled "Your question" where the user types a natural language query
+- Output 1: A text box labeled "Answer" showing the LLM-generated response grounded in retrieved chunks
+- Output 2: A text box labeled "Retrieved from" listing the source documents the answer drew from
+
+To run the interface:
+```bash
+python embed.py   # only needed once to build the database
+python app.py     # launches the interface
+```
+
+**Sample interaction transcript:**
+
+**Question:** What negative feedback do students give about Professor Ziegler?
+
+**Answer:** Students give the following negative feedback about Professor Ziegler:
+
+1. He is a disagreeable and not very lenient professor.
+2. He has poor lecture skills, with one student observing that he just reads straight from the slides.
+3. His assignments can be stressful and require several hours of work, with some students finding it difficult to parse what he expects them to do based on the instructions.
+4. His class is considered hard, with big homework assignments.
+5. wo hours of his lecture twice a week for 15 weeks can be overwhelming for some students.
+
+Retrieved from:
+- bc_csclub_discord.html
+
+---
+
+## Out of scope query example
+**Question:** What is the best pizza place near campus?
+
+**Answer:** I don't have enough information on that.
+Retrieved from:
+- undergraduate.pdf
+- graduate.pdf
+- bc_csclub_discord.html
+- cs_department.txt
