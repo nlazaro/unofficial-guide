@@ -1,9 +1,33 @@
 import pdfplumber
 import os
+import re
+
+def clean_text(text, source):
+    """Clean noise from text based on source type."""
+    
+    # Remove URLs
+    text = re.sub(r'http\S+', '', text)
+    
+    # Remove email addresses
+    text = re.sub(r'\S+@\S+', '', text)
+    
+    # Remove phone numbers
+    text = re.sub(r'\(?\d{3}\)?[-.\s]\d{3}[-.\s]\d{4}', '', text)
+    
+    if source.endswith('.pdf'):
+        # Remove page numbers (standalone numbers)
+        text = re.sub(r'\n\d+\n', ' ', text)
+        # Remove table of contents dots
+        text = re.sub(r'\.{3,}', ' ', text)
+    
+    # Clean up extra whitespace
+    text = re.sub(r'\s+', ' ', text).strip()
+    
+    return text
 
 DOCS_PATH = "ai201-project1-unofficial-guide-starter/documents"
-CHUNK_SIZE = 350  # tokens, approximated as words
-OVERLAP = 50
+CHUNK_SIZE = 200  # tokens, approximated as words
+OVERLAP = 30
 
 def load_pdfs():
     """Load all PDFs from the docs folder."""
@@ -16,6 +40,7 @@ def load_pdfs():
                     page.extract_text() for page in pdf.pages 
                     if page.extract_text()
                 )
+            text = clean_text(text, filename)
             documents.append({
                 "source": filename,
                 "text": text
@@ -31,6 +56,7 @@ def load_txts():
             filepath = os.path.join(DOCS_PATH, filename)
             with open(filepath, "r", encoding="utf-8") as f:
                 text = f.read()
+            text = clean_text(text, filename)
             documents.append({
                 "source": filename,
                 "text": text
@@ -52,6 +78,7 @@ def load_html():
             text = re.sub(r'<[^>]+>', ' ', raw)
             # Clean up whitespace
             text = re.sub(r'\s+', ' ', text).strip()
+            text = clean_text(text, filename)
             documents.append({
                 "source": filename,
                 "text": text
